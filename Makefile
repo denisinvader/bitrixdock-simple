@@ -1,4 +1,10 @@
-include .env
+-include .env
+
+SITE_PATH ?= ./www
+MYSQL_DATABASE ?= bitrix
+MYSQL_USER ?= bitrix
+MYSQL_PASSWORD ?= bitrix
+MYSQL_ROOT_PASSWORD ?= root
 
 .DEFAULT_GOAL := help
 
@@ -7,9 +13,6 @@ help: ## This help
 
 console-php: ## Run bash (PHP) from "www-data"
 	docker compose exec -u www-data php bash
-
-console-workspace: ## Run bash (PHP) from "www-data"
-	docker compose exec -u www-data workspace zsh
 
 shell: console-php
 
@@ -37,16 +40,15 @@ build: ## Build Docker-project
 ps: ## Show list containers
 	docker compose ps
 
-bitrix-setup: create-dir ## Download bitrixsetup.php file to the site path
-	curl -fsSL https://www.1c-bitrix.ru/download/scripts/bitrixsetup.php -o ${SITE_PATH}/bitrixsetup.php
+bitrix-setup: ## Download bitrixsetup.php file to the site path
+	./download.sh $(SITE_PATH)
 
-bitrix-restore: create-dir ## Download restore.php file to the site path
-	curl -fsSL https://www.1c-bitrix.ru/download/scripts/restore.php -o ${SITE_PATH}/restore.php
+bitrix-restore: ## Download restore.php file to the site path
+	mkdir -p $(SITE_PATH)
+	curl -fsSL https://www.1c-bitrix.ru/download/scripts/restore.php -o $(SITE_PATH)/restore.php
 
-bitrix-server-test: create-dir ## Download bitrix_server_test.php file to the site path
-	curl -fsSL https://dev.1c-bitrix.ru/download/scripts/bitrix_server_test.php -o ${SITE_PATH}/bitrix_server_test.php
-
-create-dir: ## Create site path
-	mkdir -p ${SITE_PATH}
+bitrix-server-test: ## Download bitrix_server_test.php file to the site path
+	mkdir -p $(SITE_PATH)
+	curl -fsSL https://dev.1c-bitrix.ru/download/scripts/bitrix_server_test.php -o $(SITE_PATH)/bitrix_server_test.php
 
 default: help

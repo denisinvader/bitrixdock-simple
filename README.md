@@ -1,209 +1,79 @@
-![Alt text](assets/logo.jpg?raw=true "BitrixDock")
+# BitrixDock Simple
 
-# BitrixDock
-BitrixDock позволяет легко и просто запускать **Bitrix CMS** на **Docker**.
-
-:warning: **Этот проект, для того чтобы посмотреть демо Битрикса, а не запустить продакшн сайт. Примеры реальных продакшн сайтов ищите внизу страницы.**
-
-
-## Введение
-BitrixDock запускает демо Битрикса предоставляя готовые сервисы PHP, NGINX, MySQL и многие другие.
-
-### Преимущества данной сборки
-- Сервис PHP запакован в отдельный образ, чтобы избавить разработчиков от долгого компилирования.
-- Остальные сервисы так же "причёсаны" и разворачиваются моментально.
-- Ничего лишнего.
+Минимальное локальное окружение для 1С-Битрикс: Nginx, PHP-FPM и Percona.
+Это упрощённый форк [оригинального BitrixDock](https://github.com/bitrixdock/bitrixdock).
+SSL завершается внешним Nginx; база данных доступна только контейнерам проекта.
+Поддерживаются PHP 8.0 и новее.
 
 ## Требования
-- Git
-- Docker
-- Docker Compose v2
 
-## Порядок разработки в Windows
-Если вы работаете в Windows, то все заводится на штатном WSL2 + Docker Desktop
+- Docker Engine / Docker Desktop с Docker Compose v2
+- `curl` для загрузки установщика Битрикса
 
-Как альтернативный вариант - можно поднять виртуальную машину (через Vagrant, VirtualBox, VMware и тп).
-Ваш рабочий проект должен храниться в двух местах, первое — локальная папка с проектами на хосте (открывается в IDE), второе — виртуальная машина
-(например `/var/www/bitrix`). Проект на хосте мапится в IDE к гостевой OC.
+## Быстрый старт
 
-## Автоматическая установка
-Для разворачивания на Linux или macOS:
-```shell
-curl -fsSL https://raw.githubusercontent.com/bitrixdock/bitrixdock/master/install.sh?$(date +%s) -o install.sh && chmod +x install.sh && sh install.sh
-```
-
-Можно указать путь установки (по умолчанию текущая директория):
-```shell
-sh install.sh ~/projects
-```
-
-## Ручная установка
-### Выполните настройку окружения
-
-Скопируйте файл `.env_template` в `.env`
-
-```shell
-cp -f .env_template .env
-```
-⚠ Если у вас мак, удалите строчку `/etc/localtime:/etc/localtime/:ro` из docker-compose.yml
-
-По умолчанию используется Nginx, PHP 8.2, Percona. Настройки можно изменить в файле `.env`. Также можно задать путь к каталогу с сайтом и параметры базы данных.
-
-```dotenv
-COMPOSE_PROJECT_NAME=bitrixdock  # Имя проекта. Используется для наименования контейнеров
-PHP_VERSION=php82                # Версия php (php56, php71, php73, php74, php80, php81, php82, php83, php84, php85)
-PHP_WORKSPACE_VERSION=8.2        # Версия PHP для workspace контейнера
-NODE_VERSION=24.12.0             # Версия Node.js для workspace контейнера
-WEB_SERVER_TYPE=nginx            # Веб-сервер nginx/apache
-DB_SERVER_TYPE=percona           # Сервер базы данных mysql/percona
-MYSQL_VERSION=8.4                # Версия MySQL / Percona (8.0, 8.4)
-MYSQL_DATABASE=bitrix            # Имя базы данных
-MYSQL_USER=bitrix                # Пользователь базы данных
-MYSQL_PASSWORD=123               # Пароль для доступа к базе данных
-MYSQL_ROOT_PASSWORD=123          # Пароль для пользователя root от базы данных
-INTERFACE=0.0.0.0                # На данный интерфейс будут проксироваться порты
-SITE_PATH=./www                  # Путь к директории Вашего сайта
-```
-
-Если у вас всё получилось, будем благодарны за звёздочку :)
-Ошибки ждём в [issue](https://github.com/bitrixdock/bitrixdock/issues)
-Приятной работы!
-
-## Скачивание дистрибутива
-Для скачивания исходников Битрикс с лицензионным ключом:
-```shell
-./download.sh <редакция> <лицензионный_ключ>
-```
-
-Например:
-```shell
-./download.sh business S12-NA-PMNBEUFJG1JH32C1
-```
-
-Доступные редакции: `business`, `small_business`, `standard`, `start`, `bitrix24`, `bitrix24_enterprise`, `bitrix24_shop`.
-
-## Запуск и остановка bitrixdock
-### Запуск
-```shell
+```sh
+cp .env_template .env
+make bitrix-setup
 docker compose up -d
 ```
-Чтобы проверить, что все сервисы запустились посмотрите список процессов `docker ps`.
-Посмотрите все прослушиваемые порты, должны быть 80, 11211, 9000 `netstat -plnt`.
-Откройте IP машины в браузере.
 
-### Запуск с опциональными сервисами
-В bitrixdock есть профили для запуска опциональных сервисов:
-- `admin` - для запуска сервиса Adminer (веб-интерфейс для управления базами данных)
-- `push` - для запуска push-сервера Битрикс и Redis
-- `workspace` - для запуска workspace контейнера с инструментами разработки
+Откройте `http://127.0.0.1:8080` и завершите установку Битрикс. В мастере
+укажите сервер БД `db` и значения `MYSQL_*` из `.env`.
 
-Для запуска с профилями:
-```shell
-docker compose --profile admin --profile push up -d
+`download.sh` делает только одно: скачивает `bitrixsetup.php` в `www/`. Можно
+выполнить его напрямую и передать другой каталог сайта:
+
+```sh
+./download.sh ./www
 ```
 
-Для запуска с workspace:
-```shell
-docker compose --profile workspace up -d
+## Несколько проектов
+
+Docker Compose автоматически изолирует сеть и именованный volume по имени
+каталога проекта. Для второй копии достаточно выбрать свободный HTTP-порт:
+
+```sh
+HTTP_PORT=8081 docker compose up -d
 ```
 
-### Остановка
-```shell
-docker compose stop
+Если запускаете несколько стеков из одного каталога, задайте также имя проекта:
+
+```sh
+COMPOSE_PROJECT_NAME=shop2 HTTP_PORT=8081 docker compose up -d
 ```
 
-### Полное удаление
-```shell
-docker compose down
-```
-## Workspace контейнер
-Workspace — это готовый к работе контейнер с инструментами для разработки и отладки
+Параметры HTTP:
 
-### Использование workspace
-Запустите контейнер с профилем workspace:
-```shell
-docker compose --profile workspace up -d
+```dotenv
+HTTP_BIND_ADDRESS=127.0.0.1
+HTTP_PORT=8080
 ```
 
-Подключитесь к контейнеру:
-```shell
-docker compose exec -u www-data workspace bash
-# или используйте команду из Makefile
-make console-workspace
+По умолчанию порт слушается только на loopback-интерфейсе, чтобы внешний Nginx
+мог проксировать к нему HTTP и завершать TLS. Для доступа из локальной сети
+укажите `HTTP_BIND_ADDRESS=0.0.0.0`.
+
+Nginx передаёт исходный `Host`, включая порт, в PHP — Bitrix не теряет
+нестандартный порт при редиректах.
+
+## Команды
+
+```sh
+make up                 # запустить
+make down               # остановить и удалить контейнеры
+make console-php        # shell от www-data
+make console-mysql      # MySQL shell
+make bitrix-setup       # скачать bitrixsetup.php
+make bitrix-restore     # скачать restore.php
 ```
 
-Внутри контейнера доступны:
-- `php` - PHP CLI с нужными расширениями
-- `composer` - менеджер пакетов PHP
-- `node`, `npm`, `yarn`, `pnpm` - для работы с JavaScript
-- `bitrix` - CLI инструмент Битрикс
-- `git` - для работы с репозиторием
+## Настройка
 
-## Как заполнять подключение к БД
-![db](https://raw.githubusercontent.com/bitrixdock/bitrixdock/master/assets/db.png)
+Все параметры лежат в `.env`; файл локальный и не попадает в Git. Минимально
+полезные значения: `SITE_PATH`, `HTTP_BIND_ADDRESS`, `HTTP_PORT`, `PHP_VERSION`
+и `MYSQL_*`. Доступны PHP-сборки `php80`–`php85`; стандартная — `php82`.
 
-## Примечание
-- **PHP 8.5**: расширение `php-memcache` недоступно, используйте `php-memcached` вместо него. Расширения `opcache` и `mbstring` встроены в PHP 8.5.
-- По умолчанию стоит папка `./www` (папка внутри репозитория)
-- В настройках подключения требуется указывать имя docker compose сервиса, например для подключения к базе нужно указывать "db", а не "localhost". Пример [конфига](configs/.settings.php) с подключением к mysql и memcached.
-- Для загрузки резервной копии в контейнер используйте команду: `cat /var/www/bitrix/backup.sql | docker exec -i mysql /usr/bin/mysql -u root -p123 bitrix`
-- При использовании в production удалите строку с xdebug из соответствующего `phpXX/Dockerfile`, сам факт его установки снижает производительность Битрикса и он должен использоваться только для разработки
-- Если контейнер php-fpm выдает ошибку "failed to create new listening socket: socket(): Address family not supported by protocol", то необходимо включить поддержку IPv6 в системе. Например в Ubuntu 22.04 — закомментировать строку в конфиге GRUB "GRUB_CMDLINE_LINUX="ipv6.disable=1"
-## Отличие от виртуальной машины Битрикс
-Виртуальная машина от разработчиков Битрикс решает ту же задачу, что и BitrixDock - предоставляет готовое окружение. Разница лишь в том, что Docker намного удобнее, проще и легче в поддержке.
-
-Как только вы запускаете виртуалку, Docker сервисы автоматически стартуют, т.е. вы запускаете свой минихостинг для проекта и он сразу доступен.
-
-Если у вас появится новый проект и поменяется окружение, достаточно скопировать чистую виртуалку (если вы на винде), скопировать папку BitrixDock, добавить или заменить сервисы и запустить.
-
-P.S.
-Виртуальная машина от разработчиков Битрикс на Apache, а у нас на Nginx, а он работает намного быстрее и кушает меньше памяти.
-
-## Использование xdebug.
-
-- Настройки xdebug задаются в `phpXX/php.ini`.
-- Для php73, php74 дефолтовые настройки xdebug - коннект на порт `9003` хоста, с которого пришел запрос. В случае невозможности коннекта - фаллбек на `host.docker.internal`.
-- При изменении `php.ini` в проекте не забудьте добавить флаг `--build` при запуске `docker-compose`, чтобы форсировать пересборку образа.
-
-
-# Ищем контрибьюторов
-Помогите развитию проекта! Требуется закрывать задачи в [issue](https://github.com/bitrixdock/bitrixdock/issues)
-
-# Пример
-Пример реального Docker проекта для Bitrix - Single Node
-https://github.com/bitrixdock/production-single-node
-
-Ещё один проект с php7 и отправкой почты, взят с боевого проекта, вырезаны пароли, сертификаты и тп
-https://github.com/bitrixdock/bitrixdock-production
-
-Ещё один production проект с memcached композитом, php8.2, почтой и кроном в контейнере и развёрнутым Readme (англ.):
-https://github.com/paskal/bitrix.infra
-
-Реальные проекты на основе этих проектов работают годами без проблем если их не трогать )
-![Alt text](assets/Clip2net_200727170318.png?raw=true "BitrixDock")
-
-# Для контрибьюторов
-1. Форкаем оригинальный проект https://github.com/bitrixdock/bitrixdock кнопкой Fork
-2. Клонируем форк себе на компьютер
-```shell
-git clone https://github.com/my_account/bitrixdock
-cd bitrixdock
-```
-3. Создаем новую ветку
-```shell
-git checkout -b myfix
-```
-4. Создаем upstream на оригинальный проект
-```shell
-git remote add upstream https://github.com/bitrixdock/bitrixdock
-```
-5. Меняем файлы
-6. Делаем коммит и отправляем правки
-```shell
-git add .
-git commit -am "My fixes"
-git push -u origin new_branch
-```
-7. Переходим в свой проект `https://github.com/my_account/bitrixdock` и жмем кнопку Compare & pull request
-8. Описываем какую проблему решает Пул Реквест с кратким описанием, зачем сделано изменение
-9. Вы прекрасны! ;)
+Дополнительные сервисы (Mailpit, Adminer, Redis, push-сервер, workspace) не
+входят в базовый стек. Их стоит подключать отдельными Compose-файлами под
+конкретную задачу, чтобы базовое окружение оставалось переносимым.
